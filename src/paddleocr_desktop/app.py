@@ -12,9 +12,10 @@ from .theme import APP_STYLESHEET
 
 
 def main() -> int:
-    os.environ.setdefault("PADDLE_PDX_MODEL_SOURCE", "BOS")
+    os.environ["PADDLE_PDX_MODEL_SOURCE"] = "bos"
+    os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
     app = QApplication(sys.argv)
-    app.setApplicationName("PaddleOCR 病历识别")
+    app.setApplicationName("PaddleOCR Desktop")
     app.setOrganizationName("AtomNLP")
     app.setStyle("Fusion")
     app.setStyleSheet(APP_STYLESHEET)

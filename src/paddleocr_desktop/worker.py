@@ -37,8 +37,11 @@ class OCRWorker(QObject):
             else:
                 self.status.emit("正在加载 OCR 模型；首次运行需要下载模型…")
 
-            # BOS is more reliable than Hugging Face on many mainland networks.
-            os.environ.setdefault("PADDLE_PDX_MODEL_SOURCE", "BOS")
+            # Use the official BOS source directly. PaddleX's hoster health
+            # check has a one-second timeout and can reject otherwise usable
+            # networks, especially on a cold Windows start.
+            os.environ["PADDLE_PDX_MODEL_SOURCE"] = "bos"
+            os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
             from paddleocr import PaddleOCR
 
             ocr = PaddleOCR(

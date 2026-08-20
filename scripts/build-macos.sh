@@ -26,7 +26,7 @@ fi
 "$BUILD_VENV/bin/python" -m PyInstaller --noconfirm --clean build/desktop.spec
 
 mkdir -p dist-installer
-rm -f dist-installer/PaddleOCR-Medical-0.1.0.dmg
+rm -f dist-installer/PaddleOCR-Desktop-0.1.0.dmg
 if ! command -v create-dmg >/dev/null 2>&1; then
   echo "未找到 DMG 构建工具 create-dmg。" >&2
   echo "请执行：brew install create-dmg" >&2
@@ -70,20 +70,20 @@ cleanup_stage() {
   esac
 }
 trap cleanup_stage EXIT
-ditto "dist/PaddleOCR病历识别.app" "$DMG_STAGE/PaddleOCR病历识别.app"
+ditto "dist/PaddleOCR Desktop.app" "$DMG_STAGE/PaddleOCR Desktop.app"
 
 create-dmg \
-  --volname "PaddleOCR 病历识别" \
+  --volname "PaddleOCR Desktop" \
   --window-pos 200 120 \
   --window-size 660 420 \
   --text-size 13 \
   --icon-size 112 \
   --app-drop-link 470 205 \
-  --icon "PaddleOCR病历识别.app" 190 205 \
-  --hide-extension "PaddleOCR病历识别.app" \
+  --icon "PaddleOCR Desktop.app" 190 205 \
+  --hide-extension "PaddleOCR Desktop.app" \
   --no-internet-enable \
   --format UDZO \
-  "dist-installer/PaddleOCR-Medical-0.1.0.dmg" \
+  "dist-installer/PaddleOCR-Desktop-0.1.0.dmg" \
   "$DMG_STAGE"
 cleanup_stage
 trap - EXIT
@@ -102,9 +102,9 @@ hdiutil attach \
   -nobrowse \
   -readonly \
   -mountpoint "$VERIFY_MOUNT" \
-  "dist-installer/PaddleOCR-Medical-0.1.0.dmg" >/dev/null
+  "dist-installer/PaddleOCR-Desktop-0.1.0.dmg" >/dev/null
 
-if [[ ! -d "$VERIFY_MOUNT/PaddleOCR病历识别.app" ]]; then
+if [[ ! -d "$VERIFY_MOUNT/PaddleOCR Desktop.app" ]]; then
   echo "DMG 校验失败：挂载卷中未找到应用。" >&2
   exit 1
 fi
@@ -117,4 +117,4 @@ rmdir "$VERIFY_MOUNT"
 trap - EXIT
 
 echo "DMG 已验证，可挂载并拖动到 Applications 安装："
-echo "dist-installer/PaddleOCR-Medical-0.1.0.dmg"
+echo "dist-installer/PaddleOCR-Desktop-0.1.0.dmg"

@@ -74,7 +74,7 @@ class ImageView(QGraphicsView):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("PaddleOCR 病历识别")
+        self.setWindowTitle("PaddleOCR Desktop")
         self.resize(1400, 860)
         self.setAcceptDrops(True)
         self.image_path: str | None = None
@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         hero_layout.setContentsMargins(22, 15, 18, 15)
         title_group = QVBoxLayout()
         title_group.setSpacing(2)
-        title = QLabel("PaddleOCR 病历识别")
+        title = QLabel("PaddleOCR Desktop")
         title.setObjectName("heroTitle")
         subtitle = QLabel("在本机完成图片文字识别，对照查看每一处结果")
         subtitle.setObjectName("heroSubtitle")
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
 
     def open_image(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择病历图片", "", "图片 (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)"
+            self, "选择图片", "", "图片 (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)"
         )
         if path:
             self.load_image(path)

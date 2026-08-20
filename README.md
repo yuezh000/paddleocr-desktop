@@ -1,4 +1,4 @@
-# PaddleOCR 病历识别桌面版
+# PaddleOCR Desktop
 
 面向 Windows 与 macOS 的 PyQt6 桌面程序。安装包包含 Python 解释器和全部运行依赖，使用者无需安装 Python、Docker 或命令行工具。
 
@@ -18,7 +18,7 @@
 
 ## 开发运行
 
-推荐 Python 3.12。首次识别会从百度 BOS 下载官方模型并保存在当前用户的 PaddleX 缓存中。
+推荐 Python 3.12。首次识别会从百度 BOS 下载官方模型并保存在当前用户的 PaddleX 缓存中。应用会跳过容易受短时网络延迟影响的模型源预检查，直接尝试下载；首次运行需要能够访问 `paddle-model-ecology.bj.bcebos.com`。
 
 ```bash
 python3.12 -m venv .venv
@@ -39,7 +39,7 @@ PyInstaller 不能跨系统构建：Windows 安装包必须在 Windows 上生成
 powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 ```
 
-结果：`dist-installer/PaddleOCR-Medical-Setup-0.1.0-x64.exe`。
+结果：`dist-installer/PaddleOCR-Desktop-Setup-0.1.0-x64.exe`。
 
 ### macOS
 
@@ -55,7 +55,7 @@ brew install python@3.12 create-dmg
 bash scripts/build-macos.sh
 ```
 
-结果：`dist-installer/PaddleOCR-Medical-0.1.0.dmg`。挂载后会显示应用和 Applications 快捷入口，可将应用图标拖到 Applications 完成安装。构建脚本会自动挂载成品并校验这两个入口，然后卸载测试卷。Apple Silicon 与 Intel 版本需分别在相应架构的 macOS 构建。公开分发前应使用 Apple Developer ID 签名并公证；未签名版本可用于内部测试，但 Gatekeeper 会提示风险。
+结果：`dist-installer/PaddleOCR-Desktop-0.1.0.dmg`。挂载后会显示应用和 Applications 快捷入口，可将应用图标拖到 Applications 完成安装。构建脚本会自动挂载成品并校验这两个入口，然后卸载测试卷。Apple Silicon 与 Intel 版本需分别在相应架构的 macOS 构建。公开分发前应使用 Apple Developer ID 签名并公证；未签名版本可用于内部测试，但 Gatekeeper 会提示风险。
 
 ### 自动构建
 
@@ -65,6 +65,6 @@ bash scripts/build-macos.sh
 
 安装包包含完整桌面运行环境，但为了控制安装包体积，OCR 模型默认在第一次识别时下载。完成一次识别后，模型会留在用户缓存中，后续可离线运行。若需要完全离线的首启安装包，可在目标构建机先下载模型，再把模型目录作为 PyInstaller data 一并封装。
 
-## 医疗数据提示
+## 使用提示
 
-OCR 结果应由专业人员复核，不应直接作为诊断或处方依据。图片清晰度、裁剪、倾斜、压缩和表格布局都会影响准确率。
+OCR 结果可能存在漏字、错字或版面关系错误。图片清晰度、裁剪、倾斜、压缩和复杂布局都会影响准确率，重要内容请对照原图复核。

@@ -28,7 +28,7 @@ try:
     }
     paddlex_dependencies = set(paddlex_deps.BASE_DEP_SPECS.keys())
     metadata_packages = installed_distributions & paddlex_dependencies
-    metadata_packages.update({"paddlex", "paddleocr", "onnxruntime"})
+    metadata_packages.update({"paddlex", "paddleocr", "onnxruntime", "PyQt6"})
     for package in sorted(metadata_packages):
         try:
             datas += copy_metadata(package)
@@ -52,7 +52,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="PaddleOCR病历识别",
+    name="PaddleOCRDesktop",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -70,14 +70,14 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="PaddleOCR病历识别",
+    name="PaddleOCRDesktop",
 )
 app = BUNDLE(
     coll,
-    name="PaddleOCR病历识别.app",
-    bundle_identifier="com.atomnlp.paddleocr-medical",
+    name="PaddleOCR Desktop.app",
+    bundle_identifier="com.atomnlp.paddleocr-desktop",
     info_plist={
-        "CFBundleDisplayName": "PaddleOCR 病历识别",
+        "CFBundleDisplayName": "PaddleOCR Desktop",
         "CFBundleShortVersionString": "0.1.0",
         "NSHighResolutionCapable": True,
     },

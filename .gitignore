@@ -2,7 +2,7 @@
 .venv-build/
 .venv-build-py312/
 .venv-test/
-build/PaddleOCR病历识别/
+build/PaddleOCRDesktop/
 dist/
 dist-installer/
 *.spec.bak
