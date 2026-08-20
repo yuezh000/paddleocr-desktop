@@ -4,6 +4,12 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
+# A user-level pip mirror can also affect PEP 517's isolated build process.
+# Use the canonical index so a stale or malformed mirror cannot break builds.
+export PIP_CONFIG_FILE=/dev/null
+export PIP_INDEX_URL=https://pypi.org/simple
+unset PIP_EXTRA_INDEX_URL || true
+
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "此脚本必须在 macOS 上运行。" >&2
   exit 1
@@ -20,6 +26,7 @@ fi
 if [[ ! -x "$BUILD_VENV/bin/python" ]]; then
   "$PYTHON_BIN" -m venv "$BUILD_VENV"
 fi
+echo "Python packages: https://pypi.org/simple"
 "$BUILD_VENV/bin/python" -m pip install --upgrade pip setuptools wheel
 "$BUILD_VENV/bin/python" -m pip install -e . pyinstaller pytest
 "$BUILD_VENV/bin/python" -m pytest
