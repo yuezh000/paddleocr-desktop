@@ -5,7 +5,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 import platform
 from pathlib import Path
+import shutil
 import sys
+import tempfile
+import zipfile
 
 
 _LOG_PATH: Path | None = None
@@ -59,3 +62,36 @@ def environment_summary() -> str:
 def diagnostic_report(traceback_text: str) -> str:
     path = str(_LOG_PATH) if _LOG_PATH else "not configured"
     return f"{environment_summary()}\nlog_file={path}\n\n{traceback_text}".strip()
+
+
+def diagnostic_snapshot(max_characters: int = 200_000) -> str:
+    """Return runtime details and the latest persistent log text."""
+    path = str(_LOG_PATH) if _LOG_PATH else "not configured"
+    sections = [environment_summary(), f"log_file={path}"]
+    if _LOG_PATH and _LOG_PATH.exists():
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+        text = _LOG_PATH.read_text(encoding="utf-8", errors="replace")
+        if len(text) > max_characters:
+            text = "[earlier log content omitted]\n" + text[-max_characters:]
+        sections.append(text or "[log file is empty]")
+    else:
+        sections.append("[log file is unavailable]")
+    return "\n\n".join(sections)
+
+
+def export_log_bundle(destination: str | Path) -> Path:
+    output = Path(destination)
+    if output.suffix.lower() != ".zip":
+        output = output.with_suffix(".zip")
+    with tempfile.TemporaryDirectory(prefix="paddleocr-logs-") as temporary:
+        stage = Path(temporary)
+        (stage / "system-info.txt").write_text(environment_summary() + "\n", encoding="utf-8")
+        if _LOG_PATH:
+            for candidate in _LOG_PATH.parent.glob(f"{_LOG_PATH.name}*"):
+                if candidate.is_file():
+                    shutil.copy2(candidate, stage / candidate.name)
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for candidate in sorted(stage.iterdir()):
+                archive.write(candidate, candidate.name)
+    return output

@@ -31,6 +31,7 @@ if (-not (Test-Path -LiteralPath $BuildPython)) {
 & $BuildPython -m pip install --upgrade pip setuptools wheel
 & $BuildPython -m pip install -e . pyinstaller pytest
 & $BuildPython -m pytest
+& $BuildPython scripts\generate-icons.py windows
 & $BuildPython -m PyInstaller --noconfirm --clean build\desktop.spec
 
 $Candidates = @(

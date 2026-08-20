@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
-from .diagnostics import log_path
+from .diagnostics import diagnostic_snapshot, export_log_bundle, log_path
 from .worker import OCRWorker
 
 
@@ -169,6 +169,11 @@ class MainWindow(QMainWindow):
         self.run_action.setEnabled(False)
         self.run_action.triggered.connect(self.recognize)
         toolbar.addAction(self.run_action)
+        self.cancel_action = QAction("取消任务", self)
+        self.cancel_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
+        self.cancel_action.setEnabled(False)
+        self.cancel_action.triggered.connect(self.cancel_recognition)
+        toolbar.addAction(self.cancel_action)
         toolbar.addSeparator()
         fit_action = QAction("适合窗口", self)
         fit_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMaxButton))
@@ -189,6 +194,19 @@ class MainWindow(QMainWindow):
         self.export_json_action.setEnabled(False)
         self.export_json_action.triggered.connect(self.export_json)
         toolbar.addAction(self.export_json_action)
+
+        log_menu = self.menuBar().addMenu("日志")
+        copy_logs_action = QAction("复制诊断信息", self)
+        copy_logs_action.setShortcut("Ctrl+Shift+C")
+        copy_logs_action.triggered.connect(self.copy_diagnostic_logs)
+        log_menu.addAction(copy_logs_action)
+        export_logs_action = QAction("导出日志包…", self)
+        export_logs_action.triggered.connect(self.export_diagnostic_logs)
+        log_menu.addAction(export_logs_action)
+        log_menu.addSeparator()
+        open_logs_action = QAction("打开日志目录", self)
+        open_logs_action.triggered.connect(self.open_log_directory)
+        log_menu.addAction(open_logs_action)
 
         root = QWidget()
         root.setObjectName("appRoot")
@@ -315,6 +333,7 @@ class MainWindow(QMainWindow):
             return
         self.run_action.setEnabled(False)
         self.open_action.setEnabled(False)
+        self.cancel_action.setEnabled(True)
         self.progress.show()
         self.result_count.setText("正在识别")
         self.loading_overlay.start()
@@ -325,10 +344,25 @@ class MainWindow(QMainWindow):
         self.worker.status.connect(self._recognition_status)
         self.worker.finished.connect(self._recognition_done)
         self.worker.failed.connect(self._recognition_failed)
+        self.worker.cancelled.connect(self._recognition_cancelled)
         self.worker.finished.connect(self.thread.quit)
         self.worker.failed.connect(self.thread.quit)
+        self.worker.cancelled.connect(self.thread.quit)
         self.thread.finished.connect(self._thread_finished)
         self.thread.start()
+
+    def cancel_recognition(self) -> None:
+        if not self.worker:
+            return
+        self.worker.request_cancel()
+        self.cancel_action.setEnabled(False)
+        self.loading_overlay.title.setText("正在取消…")
+        self.loading_overlay.set_message("将在当前推理步骤结束后安全取消")
+        self.statusBar().showMessage("已请求取消，正在等待当前推理步骤结束…")
+
+    def _recognition_cancelled(self) -> None:
+        self.result_count.setText("已取消")
+        self.statusBar().showMessage("识别任务已取消")
 
     def _recognition_status(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -369,10 +403,7 @@ class MainWindow(QMainWindow):
             QApplication.clipboard().setText(diagnostics)
             self.statusBar().showMessage("完整诊断日志已复制")
         elif clicked is folder_button:
-            path = log_path()
-            if path:
-                QDesktopServices.openUrl(path.parent.as_uri())
-            self.statusBar().showMessage("已打开日志目录")
+            self.open_log_directory()
         else:
             self.statusBar().showMessage("识别失败")
 
@@ -385,8 +416,35 @@ class MainWindow(QMainWindow):
         self.thread = None
         self.progress.hide()
         self.loading_overlay.stop()
+        self.loading_overlay.title.setText("正在识别…")
         self.open_action.setEnabled(True)
+        self.cancel_action.setEnabled(False)
         self.run_action.setEnabled(bool(self.image_path))
+
+    def copy_diagnostic_logs(self) -> None:
+        QApplication.clipboard().setText(diagnostic_snapshot())
+        self.statusBar().showMessage("诊断信息和最新日志已复制")
+
+    def export_diagnostic_logs(self) -> None:
+        destination, _ = QFileDialog.getSaveFileName(
+            self, "导出日志包", "paddleocr-desktop-logs.zip", "ZIP 压缩包 (*.zip)"
+        )
+        if not destination:
+            return
+        try:
+            output = export_log_bundle(destination)
+        except OSError as exc:
+            QMessageBox.warning(self, "导出失败", f"无法导出日志：{exc}")
+            return
+        self.statusBar().showMessage(f"日志已导出到 {output}")
+
+    def open_log_directory(self) -> None:
+        path = log_path()
+        if path:
+            QDesktopServices.openUrl(path.parent.resolve().as_uri())
+            self.statusBar().showMessage("已打开日志目录")
+        else:
+            QMessageBox.warning(self, "日志不可用", "日志目录尚未初始化。")
 
     def _set_result_actions(self, enabled: bool) -> None:
         self.copy_action.setEnabled(enabled)
@@ -423,7 +481,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self.thread:
-            QMessageBox.information(self, "正在识别", "请等待当前图片识别完成后再退出。")
+            self.cancel_recognition()
+            QMessageBox.information(self, "正在取消", "已请求取消任务，请等待当前推理步骤结束后再退出。")
             event.ignore()
         else:
             event.accept()

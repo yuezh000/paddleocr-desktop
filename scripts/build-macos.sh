@@ -23,6 +23,7 @@ fi
 "$BUILD_VENV/bin/python" -m pip install --upgrade pip setuptools wheel
 "$BUILD_VENV/bin/python" -m pip install -e . pyinstaller pytest
 "$BUILD_VENV/bin/python" -m pytest
+"$BUILD_VENV/bin/python" scripts/generate-icons.py macos
 "$BUILD_VENV/bin/python" -m PyInstaller --noconfirm --clean build/desktop.spec
 
 mkdir -p dist-installer

@@ -1,9 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 import importlib.metadata
+import sys
 
 from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
 
-datas, binaries, hiddenimports = [], [], []
+datas, binaries, hiddenimports = [("../assets/app-icon.svg", "assets")], [], []
+icon_file = "../assets/generated/app-icon.icns" if sys.platform == "darwin" else "../assets/generated/app-icon.ico"
 for package in ("paddleocr", "paddlex", "onnxruntime", "pyclipper", "shapely"):
     try:
         package_datas, package_binaries, package_hidden = collect_all(package)
@@ -63,6 +65,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=icon_file,
 )
 coll = COLLECT(
     exe,
@@ -81,4 +84,5 @@ app = BUNDLE(
         "CFBundleShortVersionString": "0.1.0",
         "NSHighResolutionCapable": True,
     },
+    icon=icon_file,
 )

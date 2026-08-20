@@ -16,12 +16,23 @@ logger = logging.getLogger(__name__)
 class OCRWorker(QObject):
     finished = pyqtSignal(list, dict)
     failed = pyqtSignal(str, str)
+    cancelled = pyqtSignal()
     status = pyqtSignal(str)
 
     def __init__(self, image_path: str, max_side: int = 3800) -> None:
         super().__init__()
         self.image_path = image_path
         self.max_side = max_side
+        self._cancel_requested = False
+
+    def request_cancel(self) -> None:
+        self._cancel_requested = True
+
+    def _stop_if_cancelled(self) -> bool:
+        if self._cancel_requested:
+            self.cancelled.emit()
+            return True
+        return False
 
     @pyqtSlot()
     def run(self) -> None:
@@ -29,6 +40,8 @@ class OCRWorker(QObject):
         try:
             self.status.emit("正在优化输入图片…")
             prepared = prepare_image(self.image_path, self.max_side)
+            if self._stop_if_cancelled():
+                return
             if prepared.scale < 1:
                 self.status.emit(
                     f"图片已按比例缩放：{prepared.original_size[0]}×{prepared.original_size[1]} → "
@@ -53,8 +66,12 @@ class OCRWorker(QObject):
                 engine="onnxruntime",
                 device="cpu",
             )
+            if self._stop_if_cancelled():
+                return
             self.status.emit("正在识别文字…")
             raw = ocr.predict(str(prepared.inference_path))
+            if self._stop_if_cancelled():
+                return
             lines = sort_reading_order(normalize_result(raw, prepared.scale))
             meta = {
                 "original_size": prepared.original_size,
