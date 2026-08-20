@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from pathlib import Path
 
 from PyQt6.QtCore import QPointF, Qt, QThread, QTimer
@@ -15,6 +17,9 @@ from PyQt6.QtWidgets import (
 from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
 from .diagnostics import diagnostic_snapshot, export_log_bundle, log_path
 from .worker import OCRWorker
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImageView(QGraphicsView):
@@ -481,8 +486,16 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self.thread:
-            self.cancel_recognition()
-            QMessageBox.information(self, "正在取消", "已请求取消任务，请等待当前推理步骤结束后再退出。")
-            event.ignore()
-        else:
-            event.accept()
+            logger.warning("Application closed while OCR task was running; stopping worker thread")
+            if self.worker:
+                self.worker.request_cancel()
+            self.thread.requestInterruption()
+            self.thread.quit()
+            self.thread.terminate()
+            if not self.thread.wait(1000):
+                # A native inference or download call may ignore Qt thread
+                # termination. The user explicitly requested an unconditional
+                # close, so flush logs and end the process without waiting.
+                logging.shutdown()
+                os._exit(0)
+        event.accept()
