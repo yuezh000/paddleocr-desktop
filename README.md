@@ -43,7 +43,13 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 
 ### macOS
 
-安装 Python 3.12 与 `create-dmg`（`brew install python@3.12 create-dmg`）后运行：
+安装 Python 3.12 与 Homebrew 版 `create-dmg/create-dmg` 后运行：
+
+```bash
+brew install python@3.12 create-dmg
+```
+
+不要使用 `npm install -g create-dmg` 安装的同名工具；它的命令参数不同。构建脚本通过 PATH 调用 `create-dmg`，并在构建前验证当前命令是否为兼容的 1.x 版本，然后运行：
 
 ```bash
 bash scripts/build-macos.sh
