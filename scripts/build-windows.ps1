@@ -5,7 +5,28 @@ Set-Location -LiteralPath $ProjectDir
 $BuildVenv = ".venv-build-py312"
 $BuildPython = "$BuildVenv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $BuildPython)) {
-    py -3.12 -m venv $BuildVenv
+    $PythonCommand = $null
+    $PythonPrefixArgs = @()
+    if (Get-Command python3.12 -ErrorAction SilentlyContinue) {
+        $PythonCommand = "python3.12"
+    }
+    elseif (Get-Command python -ErrorAction SilentlyContinue) {
+        $PythonCommand = "python"
+    }
+    elseif (Get-Command py -ErrorAction SilentlyContinue) {
+        $PythonCommand = "py"
+        $PythonPrefixArgs = @("-3.12")
+    }
+    else {
+        throw "Python 3.12 was not found. Install Python 3.12, enable Add Python to PATH, and run this script again."
+    }
+
+    $PythonVersion = & $PythonCommand @PythonPrefixArgs -c "import sys; print('.'.join(map(str, sys.version_info[:2])))"
+    if ($LASTEXITCODE -ne 0 -or $PythonVersion.Trim() -ne "3.12") {
+        throw "The detected Python command is version $PythonVersion. Python 3.12 is required."
+    }
+    Write-Host "Using $PythonCommand with Python $PythonVersion"
+    & $PythonCommand @PythonPrefixArgs -m venv $BuildVenv
 }
 & $BuildPython -m pip install --upgrade pip setuptools wheel
 & $BuildPython -m pip install -e . pyinstaller pytest
