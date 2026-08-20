@@ -42,5 +42,17 @@ $Compiler = $Candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } |
 if (-not $Compiler) {
     throw "Inno Setup 6 was not found. Install it and run this script again."
 }
-& $Compiler build\windows\installer.iss
+$CompilerDirectory = Split-Path -Parent $Compiler
+$ChineseMessages = Join-Path $CompilerDirectory "Languages\ChineseSimplified.isl"
+if (Test-Path -LiteralPath $ChineseMessages) {
+    Write-Host "Using the Simplified Chinese installer language."
+    & $Compiler "/DUseChineseLanguage" build\windows\installer.iss
+}
+else {
+    Write-Warning "ChineseSimplified.isl was not found; building the installer with Inno Setup's built-in English language."
+    & $Compiler build\windows\installer.iss
+}
+if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE. See the compiler output above."
+}
 Write-Host "Installer created in the dist-installer directory."

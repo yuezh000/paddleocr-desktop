@@ -43,6 +43,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 ```
 
 结果：`dist-installer/PaddleOCR-Desktop-Setup-0.1.0-x64.exe`。
+若 Inno Setup 未安装可选的 `ChineseSimplified.isl`，构建脚本会自动使用内置英文安装界面，不会中断安装包生成。
 
 ### macOS
 
