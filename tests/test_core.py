@@ -3,6 +3,8 @@ from pathlib import Path
 from PIL import Image
 
 from paddleocr_desktop.core import normalize_result, prepare_image
+from paddleocr_desktop.diagnostics import diagnostic_report
+from paddleocr_desktop.worker import format_exception_chain
 
 
 def test_prepare_large_image_preserves_ratio(tmp_path: Path):
@@ -27,3 +29,22 @@ def test_normalize_maps_polygon_to_original_coordinates():
     assert lines[0].text == "血肌酐"
     assert lines[0].polygon[0] == [20.0, 40.0]
     assert lines[1].score == 0.95
+
+
+def test_exception_chain_contains_wrapped_root_cause():
+    try:
+        try:
+            raise ModuleNotFoundError("No module named 'example_dependency'")
+        except ModuleNotFoundError as cause:
+            raise RuntimeError("pipeline creation failed") from cause
+    except RuntimeError as exc:
+        message = format_exception_chain(exc)
+    assert "pipeline creation failed" in message
+    assert "example_dependency" in message
+
+
+def test_diagnostic_report_contains_runtime_and_traceback():
+    report = diagnostic_report("Traceback: example")
+    assert "Python=" in report
+    assert "onnxruntime=" in report
+    assert "Traceback: example" in report

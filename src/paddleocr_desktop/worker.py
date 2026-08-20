@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import os
+import logging
 import traceback
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from .core import normalize_result, prepare_image, sort_reading_order
+from .diagnostics import diagnostic_report
+
+
+logger = logging.getLogger(__name__)
 
 
 class OCRWorker(QObject):
     finished = pyqtSignal(list, dict)
-    failed = pyqtSignal(str)
+    failed = pyqtSignal(str, str)
     status = pyqtSignal(str)
 
     def __init__(self, image_path: str, max_side: int = 3800) -> None:
@@ -54,9 +59,23 @@ class OCRWorker(QObject):
                 "scale": prepared.scale,
             }
             self.finished.emit(lines, meta)
-        except Exception as exc:  # show a useful error without leaking OCR content
-            detail = "".join(traceback.format_exception_only(type(exc), exc)).strip()
-            self.failed.emit(detail)
+        except Exception as exc:  # show the complete cause chain, not PaddleX's wrapper only
+            traceback_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            logger.error("OCR pipeline failed\n%s", traceback_text)
+            self.failed.emit(format_exception_chain(exc), diagnostic_report(traceback_text))
         finally:
             if prepared is not None:
                 prepared.cleanup()
+
+
+def format_exception_chain(exc: BaseException) -> str:
+    messages: list[str] = []
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        message = "".join(traceback.format_exception_only(type(current), current)).strip()
+        if message not in messages:
+            messages.append(message)
+        current = current.__cause__ or current.__context__
+    return "\n\n根因：\n".join(messages)

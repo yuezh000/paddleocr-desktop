@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
+from .diagnostics import log_path
 from .worker import OCRWorker
 
 
@@ -201,9 +202,28 @@ class MainWindow(QMainWindow):
         size_note = f"；推理尺寸 {inference}" if original != inference else ""
         self.statusBar().showMessage(f"识别完成：{len(lines)} 个文本区域{size_note}")
 
-    def _recognition_failed(self, message: str) -> None:
-        QMessageBox.critical(self, "识别失败", f"PaddleOCR 未能完成识别：\n\n{message}")
-        self.statusBar().showMessage("识别失败")
+    def _recognition_failed(self, message: str, diagnostics: str) -> None:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Critical)
+        box.setWindowTitle("识别失败")
+        box.setText("PaddleOCR 未能完成识别")
+        box.setInformativeText(message)
+        box.setDetailedText(diagnostics)
+        box.setStandardButtons(QMessageBox.StandardButton.Close)
+        copy_button = box.addButton("复制完整日志", QMessageBox.ButtonRole.ActionRole)
+        folder_button = box.addButton("打开日志目录", QMessageBox.ButtonRole.ActionRole)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is copy_button:
+            QApplication.clipboard().setText(diagnostics)
+            self.statusBar().showMessage("完整诊断日志已复制")
+        elif clicked is folder_button:
+            path = log_path()
+            if path:
+                QDesktopServices.openUrl(path.parent.as_uri())
+            self.statusBar().showMessage("已打开日志目录")
+        else:
+            self.statusBar().showMessage("识别失败")
 
     def _thread_finished(self) -> None:
         if self.worker:
