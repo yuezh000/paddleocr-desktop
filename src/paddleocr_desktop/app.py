@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication
 
 from .diagnostics import configure_logging
 from .main_window import MainWindow
+from .theme import APP_STYLESHEET
 
 
 def main() -> int:
@@ -15,6 +16,8 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("PaddleOCR 病历识别")
     app.setOrganizationName("AtomNLP")
+    app.setStyle("Fusion")
+    app.setStyleSheet(APP_STYLESHEET)
     app_data = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)
     configure_logging(os.path.join(app_data, "logs"))
     window = MainWindow()

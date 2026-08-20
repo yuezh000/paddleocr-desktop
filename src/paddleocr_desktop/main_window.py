@@ -6,9 +6,10 @@ from pathlib import Path
 from PyQt6.QtCore import QPointF, Qt, QThread
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPen, QPolygonF
 from PyQt6.QtWidgets import (
-    QApplication, QFileDialog, QGraphicsPixmapItem, QGraphicsPolygonItem, QGraphicsScene,
-    QGraphicsView, QHeaderView, QLabel, QMainWindow, QMessageBox, QProgressBar,
-    QSplitter, QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget,
+    QApplication, QFileDialog, QFrame, QGraphicsPixmapItem, QGraphicsPolygonItem,
+    QGraphicsScene, QGraphicsView, QHeaderView, QHBoxLayout, QLabel, QMainWindow,
+    QMessageBox, QProgressBar, QSplitter, QTableWidget, QTableWidgetItem, QToolBar,
+    QVBoxLayout, QWidget,
 )
 
 from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
@@ -19,6 +20,7 @@ from .worker import OCRWorker
 class ImageView(QGraphicsView):
     def __init__(self) -> None:
         super().__init__()
+        self.setObjectName("imageCanvas")
         self.setScene(QGraphicsScene(self))
         self.setRenderHints(self.renderHints())
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
@@ -83,6 +85,7 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         toolbar = QToolBar("工具")
+        toolbar.setObjectName("actionBar")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         self.open_action = QAction("打开图片", self)
@@ -111,30 +114,87 @@ class MainWindow(QMainWindow):
         self.export_json_action.triggered.connect(self.export_json)
         toolbar.addAction(self.export_json_action)
 
+        root = QWidget()
+        root.setObjectName("appRoot")
+        root_layout = QVBoxLayout(root)
+        root_layout.setContentsMargins(18, 16, 18, 16)
+        root_layout.setSpacing(14)
+
+        hero = QFrame()
+        hero.setObjectName("hero")
+        hero_layout = QHBoxLayout(hero)
+        hero_layout.setContentsMargins(22, 15, 18, 15)
+        title_group = QVBoxLayout()
+        title_group.setSpacing(2)
+        title = QLabel("PaddleOCR 病历识别")
+        title.setObjectName("heroTitle")
+        subtitle = QLabel("在本机完成图片文字识别，对照查看每一处结果")
+        subtitle.setObjectName("heroSubtitle")
+        title_group.addWidget(title)
+        title_group.addWidget(subtitle)
+        hero_layout.addLayout(title_group)
+        hero_layout.addStretch()
+        badge = QLabel("PP-OCRv5  ·  本地处理")
+        badge.setObjectName("engineBadge")
+        hero_layout.addWidget(badge)
+        root_layout.addWidget(hero)
+
         self.image_view = ImageView()
-        left = QWidget()
+        left = QFrame()
+        left.setProperty("class", "card")
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(14, 13, 14, 14)
+        left_layout.setSpacing(9)
+        left_header = QHBoxLayout()
+        left_title = QLabel("原始图片与检测框")
+        left_title.setProperty("class", "panelTitle")
         self.image_label = QLabel("将图片拖到这里，或点击“打开图片”")
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("padding: 8px; color: #667085;")
-        left_layout.addWidget(self.image_label)
+        self.image_label.setObjectName("fileLabel")
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        left_header.addWidget(left_title)
+        left_header.addStretch()
+        left_header.addWidget(self.image_label, 1)
+        left_layout.addLayout(left_header)
         left_layout.addWidget(self.image_view, 1)
 
         self.table = QTableWidget(0, 3)
+        self.table.setObjectName("resultTable")
         self.table.setHorizontalHeaderLabels(["识别文字", "置信度", "位置"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(39)
         self.table.currentCellChanged.connect(lambda row, _c, _pr, _pc: self.image_view.highlight(row))
+
+        right = QFrame()
+        right.setProperty("class", "card")
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(14, 13, 14, 14)
+        right_layout.setSpacing(9)
+        right_title = QLabel("识别结果")
+        right_title.setProperty("class", "panelTitle")
+        self.result_count = QLabel("尚未识别")
+        self.result_count.setObjectName("fileLabel")
+        right_header = QHBoxLayout()
+        right_header.addWidget(right_title)
+        right_header.addStretch()
+        right_header.addWidget(self.result_count)
+        right_layout.addLayout(right_header)
+        right_layout.addWidget(self.table, 1)
 
         splitter = QSplitter()
         splitter.addWidget(left)
-        splitter.addWidget(self.table)
-        splitter.setSizes([850, 550])
-        self.setCentralWidget(splitter)
+        splitter.addWidget(right)
+        splitter.setSizes([820, 520])
+        splitter.setChildrenCollapsible(False)
+        root_layout.addWidget(splitter, 1)
+        self.setCentralWidget(root)
 
         self.progress = QProgressBar()
         self.progress.setMaximumWidth(170)
@@ -160,6 +220,7 @@ class MainWindow(QMainWindow):
         self.image_path = path
         self.lines = []
         self.table.setRowCount(0)
+        self.result_count.setText("尚未识别")
         self.image_view.set_boxes([])
         self.image_label.setText(Path(path).name)
         self.run_action.setEnabled(True)
@@ -197,6 +258,7 @@ class MainWindow(QMainWindow):
                 position = f"{min(xs):.0f},{min(ys):.0f}"
             self.table.setItem(row, 2, QTableWidgetItem(position))
         self._set_result_actions(bool(lines))
+        self.result_count.setText(f"{len(lines)} 个文本区域")
         original = "×".join(map(str, meta["original_size"]))
         inference = "×".join(map(str, meta["inference_size"]))
         size_note = f"；推理尺寸 {inference}" if original != inference else ""
