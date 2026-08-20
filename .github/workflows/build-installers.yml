@@ -1,0 +1,43 @@
+name: build-installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-2022
+            artifact: windows-installer
+            command: powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
+            path: dist-installer/*.exe
+          - os: macos-14
+            artifact: macos-apple-silicon-dmg
+            command: bash scripts/build-macos.sh
+            path: dist-installer/*.dmg
+          - os: macos-15-intel
+            artifact: macos-intel-dmg
+            command: bash scripts/build-macos.sh
+            path: dist-installer/*.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup --no-progress -y
+      - name: Install create-dmg
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+      - name: Build
+        run: ${{ matrix.command }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}

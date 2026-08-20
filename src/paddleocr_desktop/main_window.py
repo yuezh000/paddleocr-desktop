@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from PyQt6.QtCore import QPointF, Qt, QThread
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPen, QPolygonF
+from PyQt6.QtWidgets import (
+    QApplication, QFileDialog, QGraphicsPixmapItem, QGraphicsPolygonItem, QGraphicsScene,
+    QGraphicsView, QHeaderView, QLabel, QMainWindow, QMessageBox, QProgressBar,
+    QSplitter, QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget,
+)
+
+from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
+from .worker import OCRWorker
+
+
+class ImageView(QGraphicsView):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setScene(QGraphicsScene(self))
+        self.setRenderHints(self.renderHints())
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self._pixmap_item: QGraphicsPixmapItem | None = None
+        self._boxes: list[QGraphicsPolygonItem] = []
+
+    def load(self, path: str) -> bool:
+        reader = QImageReader(path)
+        reader.setAutoTransform(True)
+        image = reader.read()
+        if image.isNull():
+            return False
+        from PyQt6.QtGui import QPixmap
+        self.scene().clear()
+        self._boxes.clear()
+        self._pixmap_item = self.scene().addPixmap(QPixmap.fromImage(image))
+        self.scene().setSceneRect(self._pixmap_item.boundingRect())
+        self.fit()
+        return True
+
+    def set_boxes(self, lines: list[OCRLine]) -> None:
+        for item in self._boxes:
+            self.scene().removeItem(item)
+        self._boxes.clear()
+        for line in lines:
+            polygon = QPolygonF([QPointF(*point) for point in line.polygon])
+            item = QGraphicsPolygonItem(polygon)
+            item.setPen(QPen(QColor("#17a2b8"), 3))
+            item.setBrush(QColor(23, 162, 184, 28))
+            item.setZValue(2)
+            self.scene().addItem(item)
+            self._boxes.append(item)
+
+    def highlight(self, index: int) -> None:
+        for i, item in enumerate(self._boxes):
+            selected = i == index
+            item.setPen(QPen(QColor("#ff6b35" if selected else "#17a2b8"), 5 if selected else 3))
+            item.setBrush(QColor(255, 107, 53, 70) if selected else QColor(23, 162, 184, 28))
+        if 0 <= index < len(self._boxes):
+            self.centerOn(self._boxes[index])
+
+    def fit(self) -> None:
+        if self._pixmap_item:
+            self.fitInView(self._pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
+
+    def wheelEvent(self, event) -> None:
+        factor = 1.15 if event.angleDelta().y() > 0 else 1 / 1.15
+        self.scale(factor, factor)
+
+
+class MainWindow(QMainWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle("PaddleOCR 病历识别")
+        self.resize(1400, 860)
+        self.setAcceptDrops(True)
+        self.image_path: str | None = None
+        self.lines: list[OCRLine] = []
+        self.thread: QThread | None = None
+        self.worker: OCRWorker | None = None
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        toolbar = QToolBar("工具")
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
+        self.open_action = QAction("打开图片", self)
+        self.open_action.setShortcut("Ctrl+O")
+        self.open_action.triggered.connect(self.open_image)
+        toolbar.addAction(self.open_action)
+        self.run_action = QAction("开始识别", self)
+        self.run_action.setShortcut("Ctrl+R")
+        self.run_action.setEnabled(False)
+        self.run_action.triggered.connect(self.recognize)
+        toolbar.addAction(self.run_action)
+        toolbar.addSeparator()
+        fit_action = QAction("适合窗口", self)
+        fit_action.triggered.connect(self.image_view_fit)
+        toolbar.addAction(fit_action)
+        self.copy_action = QAction("复制全文", self)
+        self.copy_action.setEnabled(False)
+        self.copy_action.triggered.connect(self.copy_text)
+        toolbar.addAction(self.copy_action)
+        self.export_txt_action = QAction("导出 TXT", self)
+        self.export_txt_action.setEnabled(False)
+        self.export_txt_action.triggered.connect(self.export_txt)
+        toolbar.addAction(self.export_txt_action)
+        self.export_json_action = QAction("导出 JSON", self)
+        self.export_json_action.setEnabled(False)
+        self.export_json_action.triggered.connect(self.export_json)
+        toolbar.addAction(self.export_json_action)
+
+        self.image_view = ImageView()
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        self.image_label = QLabel("将图片拖到这里，或点击“打开图片”")
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("padding: 8px; color: #667085;")
+        left_layout.addWidget(self.image_label)
+        left_layout.addWidget(self.image_view, 1)
+
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["识别文字", "置信度", "位置"])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.currentCellChanged.connect(lambda row, _c, _pr, _pc: self.image_view.highlight(row))
+
+        splitter = QSplitter()
+        splitter.addWidget(left)
+        splitter.addWidget(self.table)
+        splitter.setSizes([850, 550])
+        self.setCentralWidget(splitter)
+
+        self.progress = QProgressBar()
+        self.progress.setMaximumWidth(170)
+        self.progress.setRange(0, 0)
+        self.progress.hide()
+        self.statusBar().addPermanentWidget(self.progress)
+        self.statusBar().showMessage("就绪")
+
+    def image_view_fit(self) -> None:
+        self.image_view.fit()
+
+    def open_image(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择病历图片", "", "图片 (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)"
+        )
+        if path:
+            self.load_image(path)
+
+    def load_image(self, path: str) -> None:
+        if Path(path).suffix.lower() not in SUPPORTED_IMAGES or not self.image_view.load(path):
+            QMessageBox.warning(self, "无法打开", "请选择有效的 PNG、JPEG、BMP、TIFF 或 WebP 图片。")
+            return
+        self.image_path = path
+        self.lines = []
+        self.table.setRowCount(0)
+        self.image_view.set_boxes([])
+        self.image_label.setText(Path(path).name)
+        self.run_action.setEnabled(True)
+        self._set_result_actions(False)
+        self.statusBar().showMessage("图片已打开，点击“开始识别”")
+
+    def recognize(self) -> None:
+        if not self.image_path or self.thread:
+            return
+        self.run_action.setEnabled(False)
+        self.open_action.setEnabled(False)
+        self.progress.show()
+        self.thread = QThread(self)
+        self.worker = OCRWorker(self.image_path, max_side=3800)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.status.connect(self.statusBar().showMessage)
+        self.worker.finished.connect(self._recognition_done)
+        self.worker.failed.connect(self._recognition_failed)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.failed.connect(self.thread.quit)
+        self.thread.finished.connect(self._thread_finished)
+        self.thread.start()
+
+    def _recognition_done(self, lines: list, meta: dict) -> None:
+        self.lines = lines
+        self.image_view.set_boxes(lines)
+        self.table.setRowCount(len(lines))
+        for row, line in enumerate(lines):
+            self.table.setItem(row, 0, QTableWidgetItem(line.text))
+            self.table.setItem(row, 1, QTableWidgetItem(f"{line.score:.1%}"))
+            position = "—"
+            if line.polygon:
+                xs, ys = [p[0] for p in line.polygon], [p[1] for p in line.polygon]
+                position = f"{min(xs):.0f},{min(ys):.0f}"
+            self.table.setItem(row, 2, QTableWidgetItem(position))
+        self._set_result_actions(bool(lines))
+        original = "×".join(map(str, meta["original_size"]))
+        inference = "×".join(map(str, meta["inference_size"]))
+        size_note = f"；推理尺寸 {inference}" if original != inference else ""
+        self.statusBar().showMessage(f"识别完成：{len(lines)} 个文本区域{size_note}")
+
+    def _recognition_failed(self, message: str) -> None:
+        QMessageBox.critical(self, "识别失败", f"PaddleOCR 未能完成识别：\n\n{message}")
+        self.statusBar().showMessage("识别失败")
+
+    def _thread_finished(self) -> None:
+        if self.worker:
+            self.worker.deleteLater()
+        if self.thread:
+            self.thread.deleteLater()
+        self.worker = None
+        self.thread = None
+        self.progress.hide()
+        self.open_action.setEnabled(True)
+        self.run_action.setEnabled(bool(self.image_path))
+
+    def _set_result_actions(self, enabled: bool) -> None:
+        self.copy_action.setEnabled(enabled)
+        self.export_txt_action.setEnabled(enabled)
+        self.export_json_action.setEnabled(enabled)
+
+    def copy_text(self) -> None:
+        QApplication.clipboard().setText("\n".join(line.text for line in self.lines))
+        self.statusBar().showMessage("识别文字已复制")
+
+    def export_txt(self) -> None:
+        self._export("txt", "\n".join(line.text for line in self.lines))
+
+    def export_json(self) -> None:
+        self._export("json", lines_to_json(self.lines))
+
+    def _export(self, suffix: str, content: str) -> None:
+        stem = Path(self.image_path or "ocr-result").stem
+        path, _ = QFileDialog.getSaveFileName(self, "导出识别结果", f"{stem}.{suffix}")
+        if path:
+            Path(path).write_text(content, encoding="utf-8")
+            self.statusBar().showMessage(f"已导出到 {path}")
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls() and any(Path(u.toLocalFile()).suffix.lower() in SUPPORTED_IMAGES for u in event.mimeData().urls()):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if Path(path).suffix.lower() in SUPPORTED_IMAGES:
+                self.load_image(path)
+                break
+
+    def closeEvent(self, event) -> None:
+        if self.thread:
+            QMessageBox.information(self, "正在识别", "请等待当前图片识别完成后再退出。")
+            event.ignore()
+        else:
+            event.accept()

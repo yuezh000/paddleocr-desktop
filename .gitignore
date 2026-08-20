@@ -1,0 +1,9 @@
+.venv/
+.venv-build/
+.venv-test/
+build/PaddleOCR病历识别/
+dist/
+dist-installer/
+*.spec.bak
+__pycache__/
+.pytest_cache/
