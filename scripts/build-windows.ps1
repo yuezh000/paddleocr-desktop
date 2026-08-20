@@ -18,7 +18,7 @@ $Candidates = @(
 )
 $Compiler = $Candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
 if (-not $Compiler) {
-    throw "未找到 Inno Setup 6。安装后重新运行本脚本。"
+    throw "Inno Setup 6 was not found. Install it and run this script again."
 }
 & $Compiler build\windows\installer.iss
-Write-Host "安装包位于 dist-installer 目录。"
+Write-Host "Installer created in the dist-installer directory."
