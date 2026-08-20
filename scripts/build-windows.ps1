@@ -2,13 +2,15 @@ $ErrorActionPreference = "Stop"
 $ProjectDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location -LiteralPath $ProjectDir
 
-if (-not (Test-Path ".venv-build\Scripts\python.exe")) {
-    py -3.11 -m venv .venv-build
+$BuildVenv = ".venv-build-py312"
+$BuildPython = "$BuildVenv\Scripts\python.exe"
+if (-not (Test-Path -LiteralPath $BuildPython)) {
+    py -3.12 -m venv $BuildVenv
 }
-& .venv-build\Scripts\python.exe -m pip install --upgrade pip wheel
-& .venv-build\Scripts\python.exe -m pip install -e . pyinstaller pytest
-& .venv-build\Scripts\python.exe -m pytest
-& .venv-build\Scripts\python.exe -m PyInstaller --noconfirm --clean build\desktop.spec
+& $BuildPython -m pip install --upgrade pip setuptools wheel
+& $BuildPython -m pip install -e . pyinstaller pytest
+& $BuildPython -m pytest
+& $BuildPython -m PyInstaller --noconfirm --clean build\desktop.spec
 
 $Candidates = @(
     "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",

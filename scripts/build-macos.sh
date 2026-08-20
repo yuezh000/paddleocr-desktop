@@ -9,13 +9,21 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-if [[ ! -x .venv-build/bin/python ]]; then
-  python3.11 -m venv .venv-build
+PYTHON_BIN="${PYTHON_BIN:-python3.12}"
+BUILD_VENV=".venv-build-py312"
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "未找到 Python 3.12。请先运行：brew install python@3.12" >&2
+  exit 1
 fi
-.venv-build/bin/python -m pip install --upgrade pip wheel
-.venv-build/bin/python -m pip install -e . pyinstaller pytest
-.venv-build/bin/python -m pytest
-.venv-build/bin/python -m PyInstaller --noconfirm --clean build/desktop.spec
+
+if [[ ! -x "$BUILD_VENV/bin/python" ]]; then
+  "$PYTHON_BIN" -m venv "$BUILD_VENV"
+fi
+"$BUILD_VENV/bin/python" -m pip install --upgrade pip setuptools wheel
+"$BUILD_VENV/bin/python" -m pip install -e . pyinstaller pytest
+"$BUILD_VENV/bin/python" -m pytest
+"$BUILD_VENV/bin/python" -m PyInstaller --noconfirm --clean build/desktop.spec
 
 mkdir -p dist-installer
 rm -f dist-installer/PaddleOCR-Medical-0.1.0.dmg

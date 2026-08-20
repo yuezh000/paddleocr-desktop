@@ -1,5 +1,6 @@
 .venv/
 .venv-build/
+.venv-build-py312/
 .venv-test/
 build/PaddleOCR病历识别/
 dist/
@@ -7,3 +8,4 @@ dist-installer/
 *.spec.bak
 __pycache__/
 .pytest_cache/
+.ipynb_checkpoints/

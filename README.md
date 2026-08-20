@@ -16,10 +16,10 @@
 
 ## 开发运行
 
-推荐 Python 3.11。首次识别会从百度 BOS 下载官方模型并保存在当前用户的 PaddleX 缓存中。
+推荐 Python 3.12。首次识别会从百度 BOS 下载官方模型并保存在当前用户的 PaddleX 缓存中。
 
 ```bash
-python3.11 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 python -m pip install -e .
 paddleocr-desktop
@@ -27,11 +27,11 @@ paddleocr-desktop
 
 ## 构建可安装软件
 
-PyInstaller 不能跨系统构建：Windows 安装包必须在 Windows 上生成，macOS DMG 必须在 macOS 上生成。构建机需要 Python 3.11；最终安装软件不需要 Python。
+PyInstaller 不能跨系统构建：Windows 安装包必须在 Windows 上生成，macOS DMG 必须在 macOS 上生成。构建机使用 Python 3.12；最终安装软件不需要 Python。
 
 ### Windows 10/11 x64
 
-安装 Python 3.11 与 Inno Setup 6，然后在 PowerShell 运行：
+安装 Python 3.12 与 Inno Setup 6，然后在 PowerShell 运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
@@ -41,7 +41,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 
 ### macOS
 
-安装 Python 3.11 与 `create-dmg`（`brew install create-dmg`）后运行：
+安装 Python 3.12 与 `create-dmg`（`brew install python@3.12 create-dmg`）后运行：
 
 ```bash
 bash scripts/build-macos.sh
