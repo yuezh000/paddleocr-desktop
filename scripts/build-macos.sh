@@ -28,6 +28,7 @@ if [[ ! -x "$BUILD_VENV/bin/python" ]]; then
 fi
 echo "Python packages: https://pypi.org/simple"
 "$BUILD_VENV/bin/python" -m pip install --upgrade pip setuptools wheel
+"$BUILD_VENV/bin/python" -m pip uninstall -y PyQt6 PyQt6-Qt6 PyQt6-sip
 "$BUILD_VENV/bin/python" -m pip install -e . pyinstaller pytest
 "$BUILD_VENV/bin/python" -m pytest
 "$BUILD_VENV/bin/python" scripts/generate-icons.py macos

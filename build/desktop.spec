@@ -4,7 +4,11 @@ import sys
 
 from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
 
-datas, binaries, hiddenimports = [("../assets/app-icon.svg", "assets")], [], []
+datas, binaries, hiddenimports = [
+    ("../assets/app-icon.svg", "assets"),
+    ("../THIRD_PARTY_NOTICES.md", "."),
+    ("../licenses", "licenses"),
+], [], []
 icon_file = "../assets/generated/app-icon.icns" if sys.platform == "darwin" else "../assets/generated/app-icon.ico"
 for package in ("paddleocr", "paddlex", "onnxruntime", "pyclipper", "shapely"):
     try:
@@ -30,7 +34,7 @@ try:
     }
     paddlex_dependencies = set(paddlex_deps.BASE_DEP_SPECS.keys())
     metadata_packages = installed_distributions & paddlex_dependencies
-    metadata_packages.update({"paddlex", "paddleocr", "onnxruntime", "PyQt6"})
+    metadata_packages.update({"paddlex", "paddleocr", "onnxruntime", "PySide6"})
     for package in sorted(metadata_packages):
         try:
             datas += copy_metadata(package)

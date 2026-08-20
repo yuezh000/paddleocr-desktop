@@ -1,6 +1,8 @@
 # PaddleOCR Desktop
 
-面向 Windows 与 macOS 的 PyQt6 桌面程序。安装包包含 Python 解释器和全部运行依赖，使用者无需安装 Python、Docker 或命令行工具。
+面向 Windows 与 macOS 的 PySide6 桌面程序。安装包包含 Python 解释器和全部运行依赖，使用者无需安装 Python、Docker 或命令行工具。
+
+界面使用 LGPLv3 授权的 PySide6/Qt 动态库。安装包保留独立 Qt 库，并附带第三方声明及 LGPL/GPL 许可证文本，详见 `THIRD_PARTY_NOTICES.md`。
 
 ## 已实现
 

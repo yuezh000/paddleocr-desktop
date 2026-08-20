@@ -29,6 +29,7 @@ if (-not (Test-Path -LiteralPath $BuildPython)) {
     & $PythonCommand @PythonPrefixArgs -m venv $BuildVenv
 }
 & $BuildPython -m pip install --upgrade pip setuptools wheel
+& $BuildPython -m pip uninstall -y PyQt6 PyQt6-Qt6 PyQt6-sip
 & $BuildPython -m pip install -e . pyinstaller pytest
 & $BuildPython -m pytest
 & $BuildPython scripts\generate-icons.py windows

@@ -5,9 +5,9 @@ import logging
 import os
 from pathlib import Path
 
-from PyQt6.QtCore import QPointF, Qt, QThread, QTimer
-from PyQt6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPainter, QPen, QPolygonF
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPointF, Qt, QThread, QTimer
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPainter, QPen, QPolygonF
+from PySide6.QtWidgets import (
     QApplication, QFileDialog, QFrame, QGraphicsPixmapItem, QGraphicsPolygonItem,
     QGraphicsScene, QGraphicsView, QHeaderView, QHBoxLayout, QLabel, QMainWindow,
     QMessageBox, QProgressBar, QSplitter, QStackedLayout, QStyle, QTableWidget,
@@ -38,7 +38,7 @@ class ImageView(QGraphicsView):
         image = reader.read()
         if image.isNull():
             return False
-        from PyQt6.QtGui import QPixmap
+        from PySide6.QtGui import QPixmap
         self.scene().clear()
         self._boxes.clear()
         self._pixmap_item = self.scene().addPixmap(QPixmap.fromImage(image))

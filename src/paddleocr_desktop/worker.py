@@ -4,7 +4,7 @@ import os
 import logging
 import traceback
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PySide6.QtCore import QObject, Signal, Slot
 
 from .core import normalize_result, prepare_image, sort_reading_order
 from .diagnostics import diagnostic_report
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class OCRWorker(QObject):
-    finished = pyqtSignal(list, dict)
-    failed = pyqtSignal(str, str)
-    cancelled = pyqtSignal()
-    status = pyqtSignal(str)
+    finished = Signal(list, dict)
+    failed = Signal(str, str)
+    cancelled = Signal()
+    status = Signal(str)
 
     def __init__(self, image_path: str, max_side: int = 3800) -> None:
         super().__init__()
@@ -34,7 +34,7 @@ class OCRWorker(QObject):
             return True
         return False
 
-    @pyqtSlot()
+    @Slot()
     def run(self) -> None:
         prepared = None
         try:

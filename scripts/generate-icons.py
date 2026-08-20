@@ -5,9 +5,9 @@ import subprocess
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QByteArray, QRectF, Qt
-from PyQt6.QtGui import QImage, QPainter
-from PyQt6.QtSvg import QSvgRenderer
+from PySide6.QtCore import QByteArray, QRectF, Qt
+from PySide6.QtGui import QImage, QPainter
+from PySide6.QtSvg import QSvgRenderer
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -43,7 +43,7 @@ def log_path() -> Path | None:
 
 
 def environment_summary() -> str:
-    package_names = ("paddleocr", "paddlex", "onnxruntime", "PyQt6", "numpy", "Pillow")
+    package_names = ("paddleocr", "paddlex", "onnxruntime", "PySide6", "numpy", "Pillow")
     versions: list[str] = []
     for name in package_names:
         try:

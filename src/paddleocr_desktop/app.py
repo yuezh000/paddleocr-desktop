@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 import sys
 
-from PyQt6.QtCore import QStandardPaths
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import QStandardPaths
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication
 
 from .diagnostics import configure_logging
 from .main_window import MainWindow
