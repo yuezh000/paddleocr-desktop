@@ -5,6 +5,7 @@ from PIL import Image
 from paddleocr_desktop.core import normalize_result, prepare_image
 from paddleocr_desktop.diagnostics import diagnostic_report
 from paddleocr_desktop.worker import format_exception_chain
+from paddleocr_desktop.resources import bundled_model_paths
 
 
 def test_prepare_large_image_preserves_ratio(tmp_path: Path):
@@ -48,3 +49,9 @@ def test_diagnostic_report_contains_runtime_and_traceback():
     assert "Python=" in report
     assert "onnxruntime=" in report
     assert "Traceback: example" in report
+
+
+def test_bundled_models_are_complete():
+    detection, recognition = bundled_model_paths()
+    assert (detection / "inference.onnx").stat().st_size == 4_826_518
+    assert (recognition / "inference.onnx").stat().st_size == 16_534_782

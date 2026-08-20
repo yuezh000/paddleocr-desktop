@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import logging
 import traceback
 
@@ -8,6 +7,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from .core import normalize_result, prepare_image, sort_reading_order
 from .diagnostics import diagnostic_report
+from .resources import bundled_model_paths
 
 
 logger = logging.getLogger(__name__)
@@ -48,23 +48,21 @@ class OCRWorker(QObject):
                     f"{prepared.inference_size[0]}×{prepared.inference_size[1]}"
                 )
             else:
-                self.status.emit("正在加载 OCR 模型；首次运行需要下载模型…")
+                self.status.emit("正在加载内置 OCR 模型…")
 
-            # ONNX packages are not available from BOS. Prefer ModelScope so
-            # Windows users do not get stuck on Hugging Face's large-file CDN.
-            os.environ["PADDLE_PDX_MODEL_SOURCE"] = "modelscope"
-            os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
             from paddleocr import PaddleOCR
 
+            detection_model, recognition_model = bundled_model_paths()
             logger.info(
-                "Loading OCR models source=modelscope detection=PP-OCRv5_mobile_det "
-                "recognition=PP-OCRv5_mobile_rec engine=onnxruntime"
+                "Loading bundled OCR models detection=%s recognition=%s engine=onnxruntime",
+                detection_model,
+                recognition_model,
             )
             ocr = PaddleOCR(
-                lang="ch",
-                ocr_version="PP-OCRv5",
                 text_detection_model_name="PP-OCRv5_mobile_det",
+                text_detection_model_dir=str(detection_model),
                 text_recognition_model_name="PP-OCRv5_mobile_rec",
+                text_recognition_model_dir=str(recognition_model),
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,

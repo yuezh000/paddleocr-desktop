@@ -6,6 +6,7 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metada
 
 datas, binaries, hiddenimports = [
     ("../assets/app-icon.svg", "assets"),
+    ("../assets/models", "assets/models"),
     ("../THIRD_PARTY_NOTICES.md", "."),
     ("../licenses", "licenses"),
 ], [], []

@@ -16,3 +16,10 @@ The application does not modify PySide6 or Qt. In the unpacked application
 directory, Qt shared libraries remain separate files and may be replaced with
 compatible builds, subject to platform security and code-signing requirements.
 
+PaddleOCR Desktop also includes PP-OCRv5 Mobile ONNX detection and recognition
+model files published by PaddlePaddle. PaddleOCR is distributed under the
+Apache License 2.0. A copy is provided at
+`licenses/PaddleOCR-Apache-2.0.txt`. Model source repositories:
+
+- https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx
+- https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx

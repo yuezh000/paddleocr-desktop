@@ -14,7 +14,7 @@
 - 窗口可随时关闭；即使模型正在下载或推理也不会阻止退出；
 - 打包时按 PaddleX 官方规范收集运行时依赖元数据，避免安装版误报缺少 OCR 依赖；
 - “日志”菜单可随时复制诊断信息、导出 ZIP 日志包或打开日志目录；日志自动轮转且不主动记录 OCR 文本；
-- 中文 PP-OCRv5 Mobile，使用 PaddleOCR 官方 `onnxruntime` 推理引擎；
+- 安装包内置中文 PP-OCRv5 Mobile 检测与识别权重，使用 PaddleOCR 的 `onnxruntime` 推理引擎；
 - 复制全文，导出 UTF-8 TXT 或含坐标与置信度的 JSON；
 - 自动应用 EXIF 方向；超大图片等比缩至最长边 3800 像素，再把检测框映射回原图坐标。
 - 应用窗口、Windows 安装程序和 macOS 应用包使用统一的 OCR 图标。
@@ -23,7 +23,7 @@
 
 ## 开发运行
 
-推荐 Python 3.12。首次识别会优先从 ModelScope 下载体积较小的官方 PP-OCRv5 Mobile ONNX 模型，并保存在当前用户的 PaddleX 缓存中。应用会跳过容易受短时网络延迟影响的模型源预检查；后续运行直接使用本地缓存。
+推荐 Python 3.12。PP-OCRv5 Mobile ONNX 检测与识别模型已经随项目和安装包分发，首次识别不会访问 Hugging Face、ModelScope、AIStudio 或 BOS，可直接离线运行。
 
 ```bash
 python3.12 -m venv .venv
@@ -72,7 +72,7 @@ bash scripts/build-macos.sh
 
 ## 模型与离线部署
 
-安装包包含完整桌面运行环境，但为了控制安装包体积，OCR 模型默认在第一次识别时下载。完成一次识别后，模型会留在用户缓存中，后续可离线运行。若需要完全离线的首启安装包，可在目标构建机先下载模型，再把模型目录作为 PyInstaller data 一并封装。
+安装包包含完整桌面运行环境和约 21 MB 的 PP-OCRv5 Mobile ONNX 权重，首次启动无需下载模型。
 
 ## 使用提示
 
