@@ -19,7 +19,7 @@ def resource_path(relative: str) -> str:
 
 
 def main() -> int:
-    os.environ["PADDLE_PDX_MODEL_SOURCE"] = "bos"
+    os.environ["PADDLE_PDX_MODEL_SOURCE"] = "modelscope"
     os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
     app = QApplication(sys.argv)
     app.setApplicationName("PaddleOCR Desktop")

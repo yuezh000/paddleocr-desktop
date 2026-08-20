@@ -50,16 +50,21 @@ class OCRWorker(QObject):
             else:
                 self.status.emit("正在加载 OCR 模型；首次运行需要下载模型…")
 
-            # Use the official BOS source directly. PaddleX's hoster health
-            # check has a one-second timeout and can reject otherwise usable
-            # networks, especially on a cold Windows start.
-            os.environ["PADDLE_PDX_MODEL_SOURCE"] = "bos"
+            # ONNX packages are not available from BOS. Prefer ModelScope so
+            # Windows users do not get stuck on Hugging Face's large-file CDN.
+            os.environ["PADDLE_PDX_MODEL_SOURCE"] = "modelscope"
             os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
             from paddleocr import PaddleOCR
 
+            logger.info(
+                "Loading OCR models source=modelscope detection=PP-OCRv5_mobile_det "
+                "recognition=PP-OCRv5_mobile_rec engine=onnxruntime"
+            )
             ocr = PaddleOCR(
                 lang="ch",
                 ocr_version="PP-OCRv5",
+                text_detection_model_name="PP-OCRv5_mobile_det",
+                text_recognition_model_name="PP-OCRv5_mobile_rec",
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,

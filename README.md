@@ -11,7 +11,7 @@
 - 识别过程中可点击“取消任务”；任务会在当前推理步骤结束后安全停止；
 - 打包时按 PaddleX 官方规范收集运行时依赖元数据，避免安装版误报缺少 OCR 依赖；
 - “日志”菜单可随时复制诊断信息、导出 ZIP 日志包或打开日志目录；日志自动轮转且不主动记录 OCR 文本；
-- 中文 PP-OCRv5，使用 PaddleOCR 官方 `onnxruntime` 推理引擎；
+- 中文 PP-OCRv5 Mobile，使用 PaddleOCR 官方 `onnxruntime` 推理引擎；
 - 复制全文，导出 UTF-8 TXT 或含坐标与置信度的 JSON；
 - 自动应用 EXIF 方向；超大图片等比缩至最长边 3800 像素，再把检测框映射回原图坐标。
 - 应用窗口、Windows 安装程序和 macOS 应用包使用统一的 OCR 图标。
@@ -20,7 +20,7 @@
 
 ## 开发运行
 
-推荐 Python 3.12。首次识别会从百度 BOS 下载官方模型并保存在当前用户的 PaddleX 缓存中。应用会跳过容易受短时网络延迟影响的模型源预检查，直接尝试下载；首次运行需要能够访问 `paddle-model-ecology.bj.bcebos.com`。
+推荐 Python 3.12。首次识别会优先从 ModelScope 下载体积较小的官方 PP-OCRv5 Mobile ONNX 模型，并保存在当前用户的 PaddleX 缓存中。应用会跳过容易受短时网络延迟影响的模型源预检查；后续运行直接使用本地缓存。
 
 ```bash
 python3.12 -m venv .venv
