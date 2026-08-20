@@ -75,11 +75,11 @@ ditto "dist/PaddleOCR Desktop.app" "$DMG_STAGE/PaddleOCR Desktop.app"
 create-dmg \
   --volname "PaddleOCR Desktop" \
   --window-pos 200 120 \
-  --window-size 660 420 \
-  --text-size 13 \
-  --icon-size 112 \
-  --app-drop-link 470 205 \
-  --icon "PaddleOCR Desktop.app" 190 205 \
+  --window-size 720 460 \
+  --text-size 14 \
+  --icon-size 128 \
+  --app-drop-link 520 225 \
+  --icon "PaddleOCR Desktop.app" 200 225 \
   --hide-extension "PaddleOCR Desktop.app" \
   --no-internet-enable \
   --format UDZO \
@@ -110,6 +110,10 @@ if [[ ! -d "$VERIFY_MOUNT/PaddleOCR Desktop.app" ]]; then
 fi
 if [[ ! -L "$VERIFY_MOUNT/Applications" ]]; then
   echo "DMG 校验失败：挂载卷中未找到 Applications 拖拽入口。" >&2
+  exit 1
+fi
+if [[ ! -f "$VERIFY_MOUNT/.DS_Store" ]]; then
+  echo "DMG 校验失败：未找到 Finder 布局数据，挂载后可能无法显示安装界面。" >&2
   exit 1
 fi
 hdiutil detach "$VERIFY_MOUNT" -quiet

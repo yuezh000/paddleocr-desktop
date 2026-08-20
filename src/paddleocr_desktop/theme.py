@@ -22,6 +22,7 @@ QToolBar#actionBar QToolButton {
     padding: 0 13px;
     font-weight: 500;
 }
+QToolBar#actionBar QToolButton::menu-indicator { image: none; }
 QToolBar#actionBar QToolButton:hover {
     color: #1261c9;
     border-color: #77a9e8;
@@ -90,6 +91,23 @@ QTableWidget#resultTable::item {
     border: none;
     border-bottom: 1px solid #edf1f6;
     padding: 7px 8px;
+}
+QWidget#resultContent { background: transparent; }
+QFrame#resultLoading {
+    background: rgba(247, 251, 255, 242);
+    border: none;
+    border-radius: 9px;
+}
+QLabel#loadingTitle {
+    color: #15395f;
+    font-size: 19px;
+    font-weight: 700;
+}
+QLabel#loadingMessage {
+    color: #66809a;
+    font-size: 13px;
+    min-width: 280px;
+    max-width: 390px;
 }
 QHeaderView::section {
     color: #58708b;

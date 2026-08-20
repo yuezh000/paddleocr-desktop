@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PyQt6.QtCore import QPointF, Qt, QThread
-from PyQt6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPen, QPolygonF
+from PyQt6.QtCore import QPointF, Qt, QThread, QTimer
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QDragEnterEvent, QDropEvent, QImageReader, QPainter, QPen, QPolygonF
 from PyQt6.QtWidgets import (
     QApplication, QFileDialog, QFrame, QGraphicsPixmapItem, QGraphicsPolygonItem,
     QGraphicsScene, QGraphicsView, QHeaderView, QHBoxLayout, QLabel, QMainWindow,
-    QMessageBox, QProgressBar, QSplitter, QTableWidget, QTableWidgetItem, QToolBar,
-    QVBoxLayout, QWidget,
+    QMessageBox, QProgressBar, QSplitter, QStackedLayout, QStyle, QTableWidget,
+    QTableWidgetItem, QToolBar, QVBoxLayout, QWidget,
 )
 
 from .core import OCRLine, SUPPORTED_IMAGES, lines_to_json
@@ -71,6 +71,75 @@ class ImageView(QGraphicsView):
         self.scale(factor, factor)
 
 
+class LoadingSpinner(QWidget):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFixedSize(64, 64)
+        self._angle = 0
+        self._timer = QTimer(self)
+        self._timer.setInterval(70)
+        self._timer.timeout.connect(self._advance)
+
+    def start(self) -> None:
+        self._timer.start()
+        self.show()
+
+    def stop(self) -> None:
+        self._timer.stop()
+        self.hide()
+
+    def _advance(self) -> None:
+        self._angle = (self._angle + 30) % 360
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.translate(self.width() / 2, self.height() / 2)
+        painter.rotate(self._angle)
+        radius = 23
+        for index in range(12):
+            color = QColor("#126ed0")
+            color.setAlpha(45 + index * 17)
+            painter.setPen(QPen(color, 5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            painter.drawLine(0, -radius, 0, -radius + 9)
+            painter.rotate(30)
+
+
+class LoadingOverlay(QFrame):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("resultLoading")
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setSpacing(12)
+        self.spinner = LoadingSpinner()
+        self.title = QLabel("正在识别…")
+        self.title.setObjectName("loadingTitle")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.message = QLabel("正在准备 OCR 模型")
+        self.message.setObjectName("loadingMessage")
+        self.message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.message.setWordWrap(True)
+        layout.addWidget(self.spinner, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.title)
+        layout.addWidget(self.message)
+        self.hide()
+
+    def start(self) -> None:
+        self.message.setText("正在准备 OCR 模型")
+        self.show()
+        self.raise_()
+        self.spinner.start()
+
+    def stop(self) -> None:
+        self.spinner.stop()
+        self.hide()
+
+    def set_message(self, message: str) -> None:
+        self.message.setText(message)
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -87,29 +156,36 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("工具")
         toolbar.setObjectName("actionBar")
         toolbar.setMovable(False)
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(toolbar)
         self.open_action = QAction("打开图片", self)
+        self.open_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton))
         self.open_action.setShortcut("Ctrl+O")
         self.open_action.triggered.connect(self.open_image)
         toolbar.addAction(self.open_action)
         self.run_action = QAction("开始识别", self)
+        self.run_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
         self.run_action.setShortcut("Ctrl+R")
         self.run_action.setEnabled(False)
         self.run_action.triggered.connect(self.recognize)
         toolbar.addAction(self.run_action)
         toolbar.addSeparator()
         fit_action = QAction("适合窗口", self)
+        fit_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMaxButton))
         fit_action.triggered.connect(self.image_view_fit)
         toolbar.addAction(fit_action)
         self.copy_action = QAction("复制全文", self)
+        self.copy_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
         self.copy_action.setEnabled(False)
         self.copy_action.triggered.connect(self.copy_text)
         toolbar.addAction(self.copy_action)
         self.export_txt_action = QAction("导出 TXT", self)
+        self.export_txt_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton))
         self.export_txt_action.setEnabled(False)
         self.export_txt_action.triggered.connect(self.export_txt)
         toolbar.addAction(self.export_txt_action)
         self.export_json_action = QAction("导出 JSON", self)
+        self.export_json_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DriveHDIcon))
         self.export_json_action.setEnabled(False)
         self.export_json_action.triggered.connect(self.export_json)
         toolbar.addAction(self.export_json_action)
@@ -174,7 +250,11 @@ class MainWindow(QMainWindow):
 
         right = QFrame()
         right.setProperty("class", "card")
-        right_layout = QVBoxLayout(right)
+        right_stack = QStackedLayout(right)
+        right_stack.setStackingMode(QStackedLayout.StackingMode.StackAll)
+        right_content = QWidget()
+        right_content.setObjectName("resultContent")
+        right_layout = QVBoxLayout(right_content)
         right_layout.setContentsMargins(14, 13, 14, 14)
         right_layout.setSpacing(9)
         right_title = QLabel("识别结果")
@@ -187,6 +267,9 @@ class MainWindow(QMainWindow):
         right_header.addWidget(self.result_count)
         right_layout.addLayout(right_header)
         right_layout.addWidget(self.table, 1)
+        right_stack.addWidget(right_content)
+        self.loading_overlay = LoadingOverlay()
+        right_stack.addWidget(self.loading_overlay)
 
         splitter = QSplitter()
         splitter.addWidget(left)
@@ -233,17 +316,23 @@ class MainWindow(QMainWindow):
         self.run_action.setEnabled(False)
         self.open_action.setEnabled(False)
         self.progress.show()
+        self.result_count.setText("正在识别")
+        self.loading_overlay.start()
         self.thread = QThread(self)
         self.worker = OCRWorker(self.image_path, max_side=3800)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.status.connect(self.statusBar().showMessage)
+        self.worker.status.connect(self._recognition_status)
         self.worker.finished.connect(self._recognition_done)
         self.worker.failed.connect(self._recognition_failed)
         self.worker.finished.connect(self.thread.quit)
         self.worker.failed.connect(self.thread.quit)
         self.thread.finished.connect(self._thread_finished)
         self.thread.start()
+
+    def _recognition_status(self, message: str) -> None:
+        self.statusBar().showMessage(message)
+        self.loading_overlay.set_message(message)
 
     def _recognition_done(self, lines: list, meta: dict) -> None:
         self.lines = lines
@@ -295,6 +384,7 @@ class MainWindow(QMainWindow):
         self.worker = None
         self.thread = None
         self.progress.hide()
+        self.loading_overlay.stop()
         self.open_action.setEnabled(True)
         self.run_action.setEnabled(bool(self.image_path))
 
