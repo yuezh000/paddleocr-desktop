@@ -49,7 +49,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
 bash scripts/build-macos.sh
 ```
 
-结果：`dist-installer/PaddleOCR-Medical-0.1.0.dmg`。Apple Silicon 与 Intel 版本需分别在相应架构的 macOS 构建。公开分发前应使用 Apple Developer ID 签名并公证；未签名版本可用于内部测试，但 Gatekeeper 会提示风险。
+结果：`dist-installer/PaddleOCR-Medical-0.1.0.dmg`。挂载后会显示应用和 Applications 快捷入口，可将应用图标拖到 Applications 完成安装。构建脚本会自动挂载成品并校验这两个入口，然后卸载测试卷。Apple Silicon 与 Intel 版本需分别在相应架构的 macOS 构建。公开分发前应使用 Apple Developer ID 签名并公证；未签名版本可用于内部测试，但 Gatekeeper 会提示风险。
 
 ### 自动构建
 
