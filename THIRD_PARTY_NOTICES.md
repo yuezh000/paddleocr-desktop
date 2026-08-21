@@ -23,3 +23,14 @@ Apache License 2.0. A copy is provided at
 
 - https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx
 - https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx
+
+Other principal runtime components include:
+
+- ONNX Runtime, MIT License: https://github.com/microsoft/onnxruntime
+- OpenCV, Apache License 2.0: https://github.com/opencv/opencv
+- Pillow, HPND License: https://github.com/python-pillow/Pillow
+- NumPy, BSD-3-Clause License: https://github.com/numpy/numpy
+
+The packaged application retains distribution metadata and license files
+provided by its Python dependencies. This notice supplements, rather than
+replaces, those files.
